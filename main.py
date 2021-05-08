@@ -6,6 +6,11 @@ from torch.utils.data import DataLoader
 import argparse
 from model import base_model
 
+from torchvision import models
+import torch.nn as nn
+
+
+
 from sklearn.decomposition import PCA
 import matplotlib 
 import matplotlib.pyplot as plt
@@ -54,8 +59,13 @@ def main(config):
     test_dataset = tiny_caltech35(transform=transform_test, used_data=['test'])
     test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False, drop_last=False)
 
-    model = base_model(class_num=config.class_num)
+#########################
+    # model = base_model(class_num=config.class_num)
+    model = models.resnet18()
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 35)
     model = model.cuda()
+##########################
 
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
@@ -104,7 +114,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
             data = data.cuda()
             label = label.cuda()
 ###########################
-            output, feature = model(data) 
+            output = model(data) 
 ###########################
             loss = creiteron(output, label)
             optimizer.zero_grad()
@@ -150,7 +160,7 @@ def test(data_loader, model):
 ##############################
             data = data.cuda()
             label = label.cuda()
-            output, feature = model(data)
+            output = model(data)
 ##############################
             pred = output.argmax(dim=1)
             correct += (pred == label).sum()
