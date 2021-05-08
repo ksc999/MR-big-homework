@@ -6,12 +6,12 @@ from torch.utils.data import DataLoader
 import argparse
 from model import base_model
 
-
-#################################
-# use PCA to draw scatter plot
 from sklearn.decomposition import PCA
 import matplotlib 
 import matplotlib.pyplot as plt
+
+#################################
+# use PCA to draw scatter plot
 def draw_dataset_with_PCA(feature, label):
     feature_numpy = feature.cpu().detach().numpy()
     label_numpy = label.cpu().detach().numpy()
@@ -62,7 +62,22 @@ def main(config):
     creiteron = torch.nn.CrossEntropyLoss()
 
     # you may need train_numbers and train_losses to visualize something
-    train_numbers, train_losses = train(config, train_loader, model, optimizer, scheduler, creiteron)
+    train_numbers, train_losses, train_accuracies = train(config, train_loader, model, optimizer, scheduler, creiteron)
+
+###############################
+# loss and acc curves
+    fig = plt.figure(figsize=(6,4)) 
+    ax1 = fig.add_subplot(111)
+    ax1.plot(train_numbers, train_losses, 'r-', label='loss')
+    ax1.set_xlabel('train_numbers')
+    ax1.set_ylabel('train_losses')
+    ax1.legend(loc='upper left')
+    ax2 = ax1.twinx()
+    ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
+    ax2.set_ylabel('train_accuracies')
+    ax2.legend(loc='upper right')
+    plt.show()
+###############################
 
     # you can use validation dataset to adjust hyper-parameters
     val_accuracy = test(val_loader, model)
@@ -75,11 +90,14 @@ def main(config):
 def train(config, data_loader, model, optimizer, scheduler, creiteron):
     model.train()
     train_losses = []
+###########################
+    train_accuracies = []
+###########################
     train_numbers = []
     counter = 0
 ###########################
-    draw_feature = list()  # list to store feature from the last epoch
-    draw_label = list()     # list to store label from the last epoch
+    # draw_feature = list()  # list to store feature from the last epoch
+    # draw_label = list()     # list to store label from the last epoch
 ###########################
     for epoch in range(config.epochs):
         for batch_idx, (data, label) in enumerate(data_loader):
@@ -99,26 +117,29 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
                     epoch, config.epochs, batch_idx * len(data), len(data_loader.dataset),
                                           100. * batch_idx / len(data_loader), loss.item(), accuracy.item()))
                 train_losses.append(loss.item())
+###########################
+                train_accuracies.append(accuracy.item())
+###########################
                 train_numbers.append(counter)
 ##############################
-# draw scatter plot using features from the last epoch
-            if epoch == config.epochs - 1:
-                # print(draw_label)
-                draw_feature.append(feature)
-                draw_label.append(label)
+# # draw scatter plot using features from the last epoch
+#             if epoch == config.epochs - 1:
+#                 # print(draw_label)
+#                 draw_feature.append(feature)
+#                 draw_label.append(label)
 ##############################
         scheduler.step()
         torch.save(model.state_dict(), './model.pth')
 ##############################
-# convert and reshape features
-    draw_feature = torch.stack(draw_feature)
-    draw_feature = draw_feature.view(-1, draw_feature.size(-1))
-    draw_label = torch.stack(draw_label)
-    draw_label = draw_label.view(-1, draw_label.size(-1))
-# draw scatter plot
-    draw_dataset_with_PCA(draw_feature, draw_label)
+# # convert and reshape features
+#     draw_feature = torch.stack(draw_feature)
+#     draw_feature = draw_feature.view(-1, draw_feature.size(-1))
+#     draw_label = torch.stack(draw_label)
+#     draw_label = draw_label.view(-1, draw_label.size(-1))
+# # draw scatter plot
+#     draw_dataset_with_PCA(draw_feature, draw_label)
 ##############################
-    return train_numbers, train_losses
+    return train_numbers, train_losses, train_accuracies
 
 
 def test(data_loader, model):
