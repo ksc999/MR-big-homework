@@ -18,13 +18,20 @@ class base_model(nn.Module):
         self.fc2 = nn.Linear(64, class_num)
 
     def forward(self, x):
+        print(x.shape)
         x = self.relu(self.bn1(self.conv1(x)))
+        print(x.shape)
         x = self.max_pooling(x)
+        print(x.shape)
 
         x = self.relu(self.bn2(self.conv2(x)))
+        print(x.shape)
         x = self.max_pooling(x)
+        print(x.shape)
         x = self.conv3(x)
+        print(x.shape)
         x = self.GAP(x).squeeze(dim=3).squeeze(dim=2)
+        print(x.shape)
 #################################
 # you can see this x as the feature, and use it to visualize something
         # feature = x.clone().detach()
