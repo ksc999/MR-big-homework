@@ -16,6 +16,7 @@ class base_model(nn.Module):
         self.bn4 = nn.BatchNorm1d(64)
         self.fc1 = nn.Linear(256, 64)
         self.fc2 = nn.Linear(64, class_num)
+        self.softmax = nn.Softmax()
 
     def forward(self, x):
         x = self.relu(self.bn1(self.conv1(x)))
@@ -31,7 +32,6 @@ class base_model(nn.Module):
 #################################
         x = self.fc1(self.relu(self.bn3(x)))
         x = self.fc2(self.relu(self.bn4(x)))
-        # print(feature.shape, x.shape)
-        # return x, feature
+        x = self.softmax(x)
         return x
 
