@@ -1,6 +1,7 @@
 from dataset import tiny_caltech35
 import torchvision.transforms as transforms
 import torch
+import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import argparse
@@ -15,14 +16,26 @@ import matplotlib.pyplot as plt
 def draw_dataset_with_PCA(feature, label):
     feature_numpy = feature.cpu().detach().numpy()
     label_numpy = label.cpu().detach().numpy()
+
+    f = np.array([feature_numpy[i] for i in range(label_numpy.shape[0]) if (label_numpy[i]>=1 and label_numpy[i]<=5)])
+    l = np.array([label_numpy[i] for i in range(label_numpy.shape[0]) if (label_numpy[i]>=1 and label_numpy[i]<=5)])
     pca = PCA(n_components=2)
-    pca.fit(feature_numpy)
-    feature_PCA = pca.transform(feature_numpy)
+    pca.fit(f)
+    feature_PCA = pca.transform(f)
     print(pca.explained_variance_ratio_)
     x = feature_PCA[:, 0]
     y = feature_PCA[:, 1]
-    plt.scatter(x, y, c=label_numpy, alpha=0.5)
+    plt.scatter(x, y, c=l, alpha=0.5)
     plt.show()
+
+    # pca = PCA(n_components=2)
+    # pca.fit(feature_numpy)
+    # feature_PCA = pca.transform(feature_numpy)
+    # print(pca.explained_variance_ratio_)
+    # x = feature_PCA[:, 0]
+    # y = feature_PCA[:, 1]
+    # plt.scatter(x, y, c=label_numpy, alpha=0.5)
+    # plt.show()
 
 #################################
 
@@ -66,17 +79,17 @@ def main(config):
 
 ###############################
 # loss and acc curves
-    fig = plt.figure(figsize=(6,4)) 
-    ax1 = fig.add_subplot(111)
-    ax1.plot(train_numbers, train_losses, 'r-', label='loss')
-    ax1.set_xlabel('train_numbers')
-    ax1.set_ylabel('train_losses')
-    ax1.legend(loc='upper left')
-    ax2 = ax1.twinx()
-    ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
-    ax2.set_ylabel('train_accuracies')
-    ax2.legend(loc='upper right')
-    plt.show()
+    # fig = plt.figure(figsize=(6,4)) 
+    # ax1 = fig.add_subplot(111)
+    # ax1.plot(train_numbers, train_losses, 'r-', label='loss')
+    # ax1.set_xlabel('train_numbers')
+    # ax1.set_ylabel('train_losses')
+    # ax1.legend(loc='upper left')
+    # ax2 = ax1.twinx()
+    # ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
+    # ax2.set_ylabel('train_accuracies')
+    # ax2.legend(loc='upper right')
+    # plt.show()
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
@@ -96,16 +109,14 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
     train_numbers = []
     counter = 0
 ###########################
-    # draw_feature = list()  # list to store feature from the last epoch
-    # draw_label = list()     # list to store label from the last epoch
+    draw_feature = list()  # list to store feature from the last epoch
+    draw_label = list()     # list to store label from the last epoch
 ###########################
     for epoch in range(config.epochs):
         for batch_idx, (data, label) in enumerate(data_loader):
             data = data.cuda()
             label = label.cuda()
-###########################
-            output, feature = model(data) 
-###########################
+            output = model(data)
             loss = creiteron(output, label)
             optimizer.zero_grad()
             loss.backward()
@@ -122,11 +133,10 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
 ###########################
                 train_numbers.append(counter)
 ##############################
-# # draw scatter plot using features from the last epoch
-#             if epoch == config.epochs - 1:
-#                 # print(draw_label)
-#                 draw_feature.append(feature)
-#                 draw_label.append(label)
+# draw scatter plot using features from the last epoch
+            if epoch == config.epochs - 1:
+                draw_feature.append(output)
+                draw_label.append(label)
 ##############################
         scheduler.step()
         torch.save(model.state_dict(), './model.pth')
@@ -135,7 +145,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
 #     draw_feature = torch.stack(draw_feature)
 #     draw_feature = draw_feature.view(-1, draw_feature.size(-1))
 #     draw_label = torch.stack(draw_label)
-#     draw_label = draw_label.view(-1, draw_label.size(-1))
+#     draw_label = draw_label.view(-1)
 # # draw scatter plot
 #     draw_dataset_with_PCA(draw_feature, draw_label)
 ##############################
@@ -145,15 +155,31 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
 def test(data_loader, model):
     model.eval()
     correct = 0
+###########################
+    draw_feature_test = torch.tensor([])  # list to store feature from the last epoch in the test
+    draw_label_test = torch.tensor([])     # list to store label from the last epoch in the test
+###########################
     with torch.no_grad():
+        index = 0
         for data, label in data_loader:
 ##############################
             data = data.cuda()
             label = label.cuda()
-            output, feature = model(data)
+            output = model(data)
+            if index == 0:
+                draw_feature_test = output.clone().detach()
+                draw_label_test = label.clone().detach()
+            else:
+                draw_feature_test = torch.cat((draw_feature_test, output))
+                draw_label_test = torch.cat((draw_label_test, label))
 ##############################
             pred = output.argmax(dim=1)
             correct += (pred == label).sum()
+            index = index + 1
+##############################
+# draw scatter plot
+        draw_dataset_with_PCA(draw_feature_test, draw_label_test)
+##############################
     accuracy = correct * 1.0 / len(data_loader.dataset)
     return accuracy
 

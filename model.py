@@ -27,9 +27,11 @@ class base_model(nn.Module):
         x = self.GAP(x).squeeze(dim=3).squeeze(dim=2)
 #################################
 # you can see this x as the feature, and use it to visualize something
-        feature = x.clone().detach()
+        # feature = x.clone().detach()
 #################################
         x = self.fc1(self.relu(self.bn3(x)))
         x = self.fc2(self.relu(self.bn4(x)))
-        return x, feature
+        # print(feature.shape, x.shape)
+        # return x, feature
+        return x
 
