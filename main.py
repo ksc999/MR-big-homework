@@ -5,7 +5,7 @@ import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import argparse
-from model import base_model
+from my_model_2 import my_model_2
 
 from sklearn.decomposition import PCA
 import matplotlib 
@@ -67,7 +67,7 @@ def main(config):
     test_dataset = tiny_caltech35(transform=transform_test, used_data=['test'])
     test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False, drop_last=False)
 
-    model = base_model(class_num=config.class_num)
+    model = my_model_2(class_num=config.class_num)
     model = model.cuda()
 
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate)
@@ -79,17 +79,17 @@ def main(config):
 
 ###############################
 # loss and acc curves
-    # fig = plt.figure(figsize=(6,4)) 
-    # ax1 = fig.add_subplot(111)
-    # ax1.plot(train_numbers, train_losses, 'r-', label='loss')
-    # ax1.set_xlabel('train_numbers')
-    # ax1.set_ylabel('train_losses')
-    # ax1.legend(loc='upper left')
-    # ax2 = ax1.twinx()
-    # ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
-    # ax2.set_ylabel('train_accuracies')
-    # ax2.legend(loc='upper right')
-    # plt.show()
+    fig = plt.figure(figsize=(6,4)) 
+    ax1 = fig.add_subplot(111)
+    ax1.plot(train_numbers, train_losses, 'r-', label='loss')
+    ax1.set_xlabel('train_numbers')
+    ax1.set_ylabel('train_losses')
+    ax1.legend(loc='upper left')
+    ax2 = ax1.twinx()
+    ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
+    ax2.set_ylabel('train_accuracies')
+    ax2.legend(loc='upper right')
+    plt.show()
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
@@ -162,23 +162,23 @@ def test(data_loader, model):
     with torch.no_grad():
         index = 0
         for data, label in data_loader:
-##############################
             data = data.cuda()
             label = label.cuda()
-            output = model(data)
-            if index == 0:
-                draw_feature_test = output.clone().detach()
-                draw_label_test = label.clone().detach()
-            else:
-                draw_feature_test = torch.cat((draw_feature_test, output))
-                draw_label_test = torch.cat((draw_label_test, label))
+            output = model(data, need_drop=0)
+##############################
+            # if index == 0:
+            #     draw_feature_test = output.clone().detach()
+            #     draw_label_test = label.clone().detach()
+            # else:
+            #     draw_feature_test = torch.cat((draw_feature_test, output))
+            #     draw_label_test = torch.cat((draw_label_test, label))
 ##############################
             pred = output.argmax(dim=1)
             correct += (pred == label).sum()
             index = index + 1
 ##############################
 # draw scatter plot
-        draw_dataset_with_PCA(draw_feature_test, draw_label_test)
+        # draw_dataset_with_PCA(draw_feature_test, draw_label_test)
 ##############################
     accuracy = correct * 1.0 / len(data_loader.dataset)
     return accuracy
