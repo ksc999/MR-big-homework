@@ -71,32 +71,36 @@ def main(config):
     model = model.cuda()
 
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
-    creiteron = torch.nn.CrossEntropyLoss()
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)  
+###############################
+# try losses
+    # creiteron = torch.nn.CrossEntropyLoss()
+    creiteron = torch.nn.MSELoss()
+###############################
 
     # you may need train_numbers and train_losses to visualize something
     train_numbers, train_losses, train_accuracies = train(config, train_loader, model, optimizer, scheduler, creiteron)
 
 ###############################
 # loss and acc curves
-    # fig = plt.figure(figsize=(6,4)) 
-    # ax1 = fig.add_subplot(111)
-    # ax1.plot(train_numbers, train_losses, 'r-', label='loss')
-    # ax1.set_xlabel('train_numbers')
-    # ax1.set_ylabel('train_losses')
-    # ax1.legend(loc='upper left')
-    # ax2 = ax1.twinx()
-    # ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
-    # ax2.set_ylabel('train_accuracies')
-    # ax2.legend(loc='upper right')
-    # plt.show()
+    fig = plt.figure(figsize=(6,4)) 
+    ax1 = fig.add_subplot(111)
+    ax1.plot(train_numbers, train_losses, 'r-', label='loss')
+    ax1.set_xlabel('train_numbers')
+    ax1.set_ylabel('train_losses')
+    ax1.legend(loc='upper left')
+    ax2 = ax1.twinx()
+    ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
+    ax2.set_ylabel('train_accuracies')
+    ax2.legend(loc='upper right')
+    plt.show()
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
-    val_accuracy = test(val_loader, model)
+    # val_accuracy = test(val_loader, model)
     test_accuracy = test(test_loader, model)
     print('===========================')
-    print("val accuracy:{}%".format(val_accuracy * 100))
+    # print("val accuracy:{}%".format(val_accuracy * 100))
     print("test accuracy:{}%".format(test_accuracy * 100))
 
 
@@ -117,7 +121,12 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
             data = data.cuda()
             label = label.cuda()
             output = model(data)
-            loss = creiteron(output, label)
+###########################
+            label_extended = torch.zeros((label.size(0), config.class_num)).cuda()
+            for i in range(label.size(0)):
+                label_extended[i][label[i]] = 1
+###########################
+            loss = creiteron(output, label_extended)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
