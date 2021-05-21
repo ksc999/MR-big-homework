@@ -75,7 +75,7 @@ def main(config):
 ###############################
 # try losses
     # creiteron = torch.nn.CrossEntropyLoss()
-    creiteron = torch.nn.MSELoss()
+    creiteron = torch.nn.MSELoss(reduction='sum')
 ###############################
 
     # you may need train_numbers and train_losses to visualize something
@@ -97,10 +97,10 @@ def main(config):
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
-    # val_accuracy = test(val_loader, model)
+    val_accuracy = test(val_loader, model)
     test_accuracy = test(test_loader, model)
     print('===========================')
-    # print("val accuracy:{}%".format(val_accuracy * 100))
+    print("val accuracy:{}%".format(val_accuracy * 100))
     print("test accuracy:{}%".format(test_accuracy * 100))
 
 
@@ -197,7 +197,7 @@ if __name__ == '__main__':
     parser.add_argument('--image_size', type=int, nargs='+', default=[112, 112])
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--class_num', type=int, default=35)
-    parser.add_argument('--learning_rate', type=float, default=0.01)
+    parser.add_argument('--learning_rate', type=float, default=0.1)
     parser.add_argument('--epochs', type=int, default=60)
     parser.add_argument('--milestones', type=int, nargs='+', default=[40, 50])
 
