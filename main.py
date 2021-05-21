@@ -79,17 +79,17 @@ def main(config):
 
 ###############################
 # loss and acc curves
-    # fig = plt.figure(figsize=(6,4)) 
-    # ax1 = fig.add_subplot(111)
-    # ax1.plot(train_numbers, train_losses, 'r-', label='loss')
-    # ax1.set_xlabel('train_numbers')
-    # ax1.set_ylabel('train_losses')
-    # ax1.legend(loc='upper left')
-    # ax2 = ax1.twinx()
-    # ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
-    # ax2.set_ylabel('train_accuracies')
-    # ax2.legend(loc='upper right')
-    # plt.show()
+    fig = plt.figure(figsize=(6,4)) 
+    ax1 = fig.add_subplot(111)
+    ax1.plot(train_numbers, train_losses, 'r-', label='loss')
+    ax1.set_xlabel('train_numbers')
+    ax1.set_ylabel('train_losses')
+    ax1.legend(loc='upper left')
+    ax2 = ax1.twinx()
+    ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
+    ax2.set_ylabel('train_accuracies')
+    ax2.legend(loc='upper right')
+    plt.show()
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
@@ -178,7 +178,7 @@ def test(data_loader, model):
             index = index + 1
 ##############################
 # draw scatter plot
-        draw_dataset_with_PCA(draw_feature_test, draw_label_test)
+        # draw_dataset_with_PCA(draw_feature_test, draw_label_test)
 ##############################
     accuracy = correct * 1.0 / len(data_loader.dataset)
     return accuracy

@@ -32,6 +32,6 @@ class base_model(nn.Module):
 #################################
         x = self.fc1(self.relu(self.bn3(x)))
         x = self.fc2(self.relu(self.bn4(x)))
-        x = self.softmax(x)
+        # x = self.softmax(x)
         return x
 
