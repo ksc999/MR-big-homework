@@ -4,8 +4,11 @@ import torch
 import numpy as np
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torch.utils.data import RandomSampler
 import argparse
 from model import base_model
+from triplet_loss import MyTripletLoss
+from my_batch_samper import MyBatchSampler
 
 from sklearn.decomposition import PCA
 import matplotlib 
@@ -39,6 +42,7 @@ def draw_dataset_with_PCA(feature, label):
 
 #################################
 
+
 def main(config):
 
 
@@ -59,7 +63,18 @@ def main(config):
     # if you want to add the addition set and validation set to train
     # train_dataset = tiny_caltech35(transform=transform_train, used_data=['train', 'val', 'addition'])
 
-    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
+################################
+# change the sample method
+    # get all the label
+    all_label = []
+    length = len(train_dataset)
+    for i in range(length):
+        all_label.append(train_dataset[i][1])
+    all_label = torch.as_tensor(all_label)
+    # my batch sampler
+    my_batch_sampler = MyBatchSampler(all_label)
+    train_loader = DataLoader(train_dataset, batch_sampler=my_batch_sampler)
+################################    
 
     val_dataset = tiny_caltech35(transform=transform_test, used_data=['val'])
     val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, drop_last=False)
@@ -72,7 +87,13 @@ def main(config):
 
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
-    creiteron = torch.nn.CrossEntropyLoss()
+
+###############################
+# change the loss    
+    # creiteron = torch.nn.CrossEntropyLoss()
+    creiteron = MyTripletLoss()
+    creiteron.cuda()
+###############################
 
     # you may need train_numbers and train_losses to visualize something
     train_numbers, train_losses, train_accuracies = train(config, train_loader, model, optimizer, scheduler, creiteron)
@@ -141,13 +162,13 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
         scheduler.step()
         torch.save(model.state_dict(), './model.pth')
 ##############################
-# # convert and reshape features
-#     draw_feature = torch.stack(draw_feature)
-#     draw_feature = draw_feature.view(-1, draw_feature.size(-1))
-#     draw_label = torch.stack(draw_label)
-#     draw_label = draw_label.view(-1)
-# # draw scatter plot
-#     draw_dataset_with_PCA(draw_feature, draw_label)
+# convert and reshape features
+    draw_feature = torch.stack(draw_feature)
+    draw_feature = draw_feature.view(-1, draw_feature.size(-1))
+    draw_label = torch.stack(draw_label)
+    draw_label = draw_label.view(-1)
+# draw scatter plot
+    draw_dataset_with_PCA(draw_feature, draw_label)
 ##############################
     return train_numbers, train_losses, train_accuracies
 
@@ -188,7 +209,7 @@ if __name__ == '__main__':
     parser.add_argument('--image_size', type=int, nargs='+', default=[112, 112])
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--class_num', type=int, default=35)
-    parser.add_argument('--learning_rate', type=float, default=0.01)
+    parser.add_argument('--learning_rate', type=float, default=0.02)
     parser.add_argument('--epochs', type=int, default=60)
     parser.add_argument('--milestones', type=int, nargs='+', default=[40, 50])
 
