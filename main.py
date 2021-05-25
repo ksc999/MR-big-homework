@@ -6,6 +6,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import argparse
 from model import base_model
+from cosface import MarginCosineProduct
 
 from sklearn.decomposition import PCA
 import matplotlib 
@@ -70,12 +71,18 @@ def main(config):
     model = base_model(class_num=config.class_num)
     model = model.cuda()
 
-    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate)
+##################################
+# use cosface as classifier
+    my_classifier = MarginCosineProduct(64, 35)
+    my_classifier.cuda()
+##################################
+
+    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, momentum=0.9, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
     creiteron = torch.nn.CrossEntropyLoss()
 
     # you may need train_numbers and train_losses to visualize something
-    train_numbers, train_losses, train_accuracies = train(config, train_loader, model, optimizer, scheduler, creiteron)
+    train_numbers, train_losses, train_accuracies = train(config, train_loader, model, my_classifier, optimizer, scheduler, creiteron)
 
 ###############################
 # loss and acc curves
@@ -93,14 +100,14 @@ def main(config):
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
-    val_accuracy = test(val_loader, model)
-    test_accuracy = test(test_loader, model)
+    val_accuracy = test(val_loader, model, my_classifier)
+    test_accuracy = test(test_loader, model, my_classifier)
     print('===========================')
     print("val accuracy:{}%".format(val_accuracy * 100))
     print("test accuracy:{}%".format(test_accuracy * 100))
 
 
-def train(config, data_loader, model, optimizer, scheduler, creiteron):
+def train(config, data_loader, model, my_classifier, optimizer, scheduler, creiteron):
     model.train()
     train_losses = []
 ###########################
@@ -117,6 +124,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
             data = data.cuda()
             label = label.cuda()
             output = model(data)
+            output = my_classifier(output, label)
             loss = creiteron(output, label)
             optimizer.zero_grad()
             loss.backward()
@@ -152,7 +160,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
     return train_numbers, train_losses, train_accuracies
 
 
-def test(data_loader, model):
+def test(data_loader, model, my_classifier):
     model.eval()
     correct = 0
 ###########################
@@ -166,6 +174,7 @@ def test(data_loader, model):
             data = data.cuda()
             label = label.cuda()
             output = model(data)
+            output = my_classifier(output, label)
             if index == 0:
                 draw_feature_test = output.clone().detach()
                 draw_label_test = label.clone().detach()
@@ -189,7 +198,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--class_num', type=int, default=35)
     parser.add_argument('--learning_rate', type=float, default=0.01)
-    parser.add_argument('--epochs', type=int, default=60)
+    parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--milestones', type=int, nargs='+', default=[40, 50])
 
     config = parser.parse_args()
