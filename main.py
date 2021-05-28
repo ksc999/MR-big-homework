@@ -7,35 +7,24 @@ from torch.utils.data import DataLoader
 import argparse
 from model import base_model
 
-from sklearn.decomposition import PCA
+from sklearn import manifold,datasets
 import matplotlib 
 import matplotlib.pyplot as plt
 
 #################################
-# use PCA to draw scatter plot
-def draw_dataset_with_PCA(feature, label):
+# use TSNE to draw scatter plot
+def draw_dataset_with_TSNE(feature, label):
     feature_numpy = feature.cpu().detach().numpy()
     label_numpy = label.cpu().detach().numpy()
 
     f = np.array([feature_numpy[i] for i in range(label_numpy.shape[0]) if (label_numpy[i]>=1 and label_numpy[i]<=5)])
     l = np.array([label_numpy[i] for i in range(label_numpy.shape[0]) if (label_numpy[i]>=1 and label_numpy[i]<=5)])
-    pca = PCA(n_components=2)
-    pca.fit(f)
-    feature_PCA = pca.transform(f)
-    print(pca.explained_variance_ratio_)
-    x = feature_PCA[:, 0]
-    y = feature_PCA[:, 1]
+    tsne = manifold.TSNE(n_components=2, init='pca', random_state=501)
+    feature_tsne = tsne.fit_transform(f)
+    x = feature_tsne[:, 0]
+    y = feature_tsne[:, 1]
     plt.scatter(x, y, c=l, alpha=0.5)
     plt.show()
-
-    # pca = PCA(n_components=2)
-    # pca.fit(feature_numpy)
-    # feature_PCA = pca.transform(feature_numpy)
-    # print(pca.explained_variance_ratio_)
-    # x = feature_PCA[:, 0]
-    # y = feature_PCA[:, 1]
-    # plt.scatter(x, y, c=label_numpy, alpha=0.5)
-    # plt.show()
 
 #################################
 
@@ -70,7 +59,7 @@ def main(config):
     model = base_model(class_num=config.class_num)
     model = model.cuda()
 
-    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, weight_decay=0.0005)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
     creiteron = torch.nn.CrossEntropyLoss()
 
@@ -116,7 +105,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
         for batch_idx, (data, label) in enumerate(data_loader):
             data = data.cuda()
             label = label.cuda()
-            output = model(data)
+            output, feature = model(data)
             loss = creiteron(output, label)
             optimizer.zero_grad()
             loss.backward()
@@ -135,19 +124,19 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
 ##############################
 # draw scatter plot using features from the last epoch
             if epoch == config.epochs - 1:
-                draw_feature.append(output)
+                draw_feature.append(feature)
                 draw_label.append(label)
 ##############################
         scheduler.step()
         torch.save(model.state_dict(), './model.pth')
 ##############################
-# # convert and reshape features
-#     draw_feature = torch.stack(draw_feature)
-#     draw_feature = draw_feature.view(-1, draw_feature.size(-1))
-#     draw_label = torch.stack(draw_label)
-#     draw_label = draw_label.view(-1)
-# # draw scatter plot
-#     draw_dataset_with_PCA(draw_feature, draw_label)
+# convert and reshape features
+    draw_feature = torch.stack(draw_feature)
+    draw_feature = draw_feature.view(-1, draw_feature.size(-1))
+    draw_label = torch.stack(draw_label)
+    draw_label = draw_label.view(-1)
+# draw scatter plot
+    draw_dataset_with_TSNE(draw_feature, draw_label)
 ##############################
     return train_numbers, train_losses, train_accuracies
 
@@ -165,12 +154,12 @@ def test(data_loader, model):
 ##############################
             data = data.cuda()
             label = label.cuda()
-            output = model(data)
+            output, feature = model(data)
             if index == 0:
-                draw_feature_test = output.clone().detach()
+                draw_feature_test = feature.clone().detach()
                 draw_label_test = label.clone().detach()
             else:
-                draw_feature_test = torch.cat((draw_feature_test, output))
+                draw_feature_test = torch.cat((draw_feature_test, feature))
                 draw_label_test = torch.cat((draw_label_test, label))
 ##############################
             pred = output.argmax(dim=1)
@@ -178,7 +167,7 @@ def test(data_loader, model):
             index = index + 1
 ##############################
 # draw scatter plot
-        # draw_dataset_with_PCA(draw_feature_test, draw_label_test)
+        draw_dataset_with_TSNE(draw_feature_test, draw_label_test)
 ##############################
     accuracy = correct * 1.0 / len(data_loader.dataset)
     return accuracy
