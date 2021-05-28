@@ -39,7 +39,7 @@ class MyTripletLoss(nn.Module):
         my_triplet_loss = losses.mean()
         # add CrossEntropyLoss
         cross_entropy_loss = self.CrossEntropyLoss(input, label) 
-        my_loss = my_triplet_loss + cross_entropy_loss
+        my_loss = 0.2 * my_triplet_loss + cross_entropy_loss
         return my_loss
 
 

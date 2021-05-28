@@ -6,7 +6,7 @@ class MyBatchSampler(Sampler):
         self.all_label = all_label
         self.batch_size = batch_size
         self.species_num = species_num
-        self.bootstrap = 2
+        self.bootstrap = 1
     
     def __iter__(self):
         num_per_kind = self.batch_size // self.species_num
