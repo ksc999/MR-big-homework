@@ -6,8 +6,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import argparse
 from model import base_model
+from center_loss import CenterLoss
 
-from sklearn import manifold,datasets
+from sklearn import manifold, datasets
 import matplotlib 
 import matplotlib.pyplot as plt
 
@@ -61,10 +62,12 @@ def main(config):
 
     optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, weight_decay=0.0005)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
-    creiteron = torch.nn.CrossEntropyLoss()
+    creiteron_cneter_loss = CenterLoss().cuda()
+    creiteron_cross_entropy_loss = torch.nn.CrossEntropyLoss().cuda()
 
     # you may need train_numbers and train_losses to visualize something
-    train_numbers, train_losses, train_accuracies = train(config, train_loader, model, optimizer, scheduler, creiteron)
+    train_numbers, train_losses, train_accuracies = train(config, train_loader, model, optimizer, scheduler, 
+                                                        creiteron_cneter_loss, creiteron_cross_entropy_loss)
 
 ###############################
 # loss and acc curves
@@ -89,7 +92,8 @@ def main(config):
     print("test accuracy:{}%".format(test_accuracy * 100))
 
 
-def train(config, data_loader, model, optimizer, scheduler, creiteron):
+def train(config, data_loader, model, optimizer, scheduler, 
+        creiteron_center_loss, creiteron_cross_entropy_loss):
     model.train()
     train_losses = []
 ###########################
@@ -106,7 +110,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
             data = data.cuda()
             label = label.cuda()
             output, feature = model(data)
-            loss = creiteron(output, label)
+            loss = creiteron_center_loss(feature, label) + creiteron_cross_entropy_loss(output, label)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -136,7 +140,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
     draw_label = torch.stack(draw_label)
     draw_label = draw_label.view(-1)
 # draw scatter plot
-    draw_dataset_with_TSNE(draw_feature, draw_label)
+    # draw_dataset_with_TSNE(draw_feature, draw_label)
 ##############################
     return train_numbers, train_losses, train_accuracies
 
