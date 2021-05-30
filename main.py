@@ -11,8 +11,52 @@ from sklearn import manifold,datasets
 import matplotlib 
 import matplotlib.pyplot as plt
 
-def add_noise(config, data_loader, model, optimizer, scheduler, creiteron, p_noise_list):
+#################################
+# purely add noise, and do not fix it
+import random
+def add_noise(config, train_loader,test_loader, creiteron, p_noise_list):
+    acc_list = []
     for p in p_noise_list:
+        # initialize model, optimizer, scheduler
+        model = base_model(class_num=config.class_num)
+        model = model.cuda()
+        optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, weight_decay=0.0005)
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
+        # train mode
+        model.train()
+        for epoch in range(config.epochs):
+            for data, label in train_loader:
+                data = data.cuda()
+                print(label)
+                for i in range(len(label)): # if randn_noise = 1, inject noise
+                    rand_noise = np.random.binomial(1, p)   
+                    if rand_noise:
+                        label[i] = random.randint(0, 34)
+                label = label.cuda()
+                print(label)
+                output, feature = model(data)
+                loss = creiteron(output, label)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+        # test mode
+        model.eval()
+        correct = 0
+        with torch.no_grad():
+            for data, label in test_loader:
+                data = data.cuda()
+                label = label.cuda()
+                pred = output.argmax(dim=1)
+                correct += (pred == label).sum()
+        accuracy = correct * 1.0 / len(test_loader.dataset)
+        # accuracy.cpu()
+        acc_list.append(accuracy.cpu())
+    plt.plot(p_noise_list, acc_list)
+    plt.xlabel('p_noise')
+    plt.ylabel('test_accuracy')
+    plt.show()
+#################################
+
         
 
 #################################
@@ -55,42 +99,37 @@ def main(config):
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True, drop_last=True)
 
     val_dataset = tiny_caltech35(transform=transform_test, used_data=['val'])
-    val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, drop_last=False)
+    val_loader = DataLoader(val_dataset, batch_size=config.batch_size, shuffle=False, drop_last=True)
 
     test_dataset = tiny_caltech35(transform=transform_test, used_data=['test'])
-    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False, drop_last=False)
+    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False, drop_last=True)
 
-    model = base_model(class_num=config.class_num)
-    model = model.cuda()
 
-    optimizer = optim.SGD(model.parameters(), lr=config.learning_rate, weight_decay=0.0005)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=config.milestones, gamma=0.1, last_epoch=-1)
     creiteron = torch.nn.CrossEntropyLoss()
-
-    # you may need train_numbers and train_losses to visualize something
-    train_numbers, train_losses, train_accuracies = train(config, train_loader, model, optimizer, scheduler, creiteron)
+    p_noise_list = [0.9, 0.01,0.9]
+    add_noise(config, train_loader, test_loader, creiteron, p_noise_list)
 
 ###############################
 # loss and acc curves
-    fig = plt.figure(figsize=(6,4)) 
-    ax1 = fig.add_subplot(111)
-    ax1.plot(train_numbers, train_losses, 'r-', label='loss')
-    ax1.set_xlabel('train_numbers')
-    ax1.set_ylabel('train_losses')
-    ax1.legend(loc='upper left')
-    ax2 = ax1.twinx()
-    ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
-    ax2.set_ylabel('train_accuracies')
-    ax2.legend(loc='upper right')
-    plt.show()
+    # fig = plt.figure(figsize=(6,4)) 
+    # ax1 = fig.add_subplot(111)
+    # ax1.plot(train_numbers, train_losses, 'r-', label='loss')
+    # ax1.set_xlabel('train_numbers')
+    # ax1.set_ylabel('train_losses')
+    # ax1.legend(loc='upper left')
+    # ax2 = ax1.twinx()
+    # ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
+    # ax2.set_ylabel('train_accuracies')
+    # ax2.legend(loc='upper right')
+    # plt.show()
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
-    val_accuracy = test(val_loader, model)
-    test_accuracy = test(test_loader, model)
-    print('===========================')
-    print("val accuracy:{}%".format(val_accuracy * 100))
-    print("test accuracy:{}%".format(test_accuracy * 100))
+    # val_accuracy = test(val_loader, model)
+    # test_accuracy = test(test_loader, model)
+    # print('===========================')
+    # print("val accuracy:{}%".format(val_accuracy * 100))
+    # print("test accuracy:{}%".format(test_accuracy * 100))
 
 
 def train(config, data_loader, model, optimizer, scheduler, creiteron):
@@ -181,8 +220,8 @@ if __name__ == '__main__':
     parser.add_argument('--image_size', type=int, nargs='+', default=[112, 112])
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--class_num', type=int, default=35)
-    parser.add_argument('--learning_rate', type=float, default=0.01)
-    parser.add_argument('--epochs', type=int, default=60)
+    parser.add_argument('--learning_rate', type=float, default=0.02)
+    parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--milestones', type=int, nargs='+', default=[40, 50])
 
     config = parser.parse_args()
