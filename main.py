@@ -27,18 +27,19 @@ def add_noise(config, train_loader,test_loader, creiteron, p_noise_list):
         for epoch in range(config.epochs):
             for data, label in train_loader:
                 data = data.cuda()
-                print(label)
+                # print(label)
                 for i in range(len(label)): # if randn_noise = 1, inject noise
                     rand_noise = np.random.binomial(1, p)   
                     if rand_noise:
                         label[i] = random.randint(0, 34)
                 label = label.cuda()
-                print(label)
-                output, feature = model(data)
+                # print(label)
+                output, _ = model(data)
                 loss = creiteron(output, label)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+            scheduler.step()
         # test mode
         model.eval()
         correct = 0
@@ -46,6 +47,7 @@ def add_noise(config, train_loader,test_loader, creiteron, p_noise_list):
             for data, label in test_loader:
                 data = data.cuda()
                 label = label.cuda()
+                output, _ = model(data)
                 pred = output.argmax(dim=1)
                 correct += (pred == label).sum()
         accuracy = correct * 1.0 / len(test_loader.dataset)
@@ -106,7 +108,7 @@ def main(config):
 
 
     creiteron = torch.nn.CrossEntropyLoss()
-    p_noise_list = [0.9, 0.01,0.9]
+    p_noise_list = np.linspace(0, 0.8, 10)
     add_noise(config, train_loader, test_loader, creiteron, p_noise_list)
 
 ###############################
@@ -221,7 +223,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--class_num', type=int, default=35)
     parser.add_argument('--learning_rate', type=float, default=0.02)
-    parser.add_argument('--epochs', type=int, default=40)
+    parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--milestones', type=int, nargs='+', default=[40, 50])
 
     config = parser.parse_args()
