@@ -31,7 +31,8 @@ class base_model(nn.Module):
         # feature = x.clone().detach()
 #################################
         x = self.fc1(self.relu(self.bn3(x)))
-        x = self.fc2(self.relu(self.bn4(x)))
+        feature = self.relu(self.bn4(x))
+        logits = self.fc2(feature)
         # x = self.softmax(x)
-        return x
+        return logits, feature
 

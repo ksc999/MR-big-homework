@@ -137,7 +137,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
         for batch_idx, (data, label) in enumerate(data_loader):
             data = data.cuda()
             label = label.cuda()
-            output = model(data)
+            output, feature = model(data)
             loss = creiteron(output, label)
             optimizer.zero_grad()
             loss.backward()
@@ -156,7 +156,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
 ##############################
 # draw scatter plot using features from the last epoch
             if epoch == config.epochs - 1:
-                draw_feature.append(output)
+                draw_feature.append(feature)
                 draw_label.append(label)
 ##############################
         scheduler.step()
@@ -186,12 +186,12 @@ def test(data_loader, model):
 ##############################
             data = data.cuda()
             label = label.cuda()
-            output = model(data)
+            output, feature = model(data)
             if index == 0:
-                draw_feature_test = output.clone().detach()
+                draw_feature_test = feature.clone().detach()
                 draw_label_test = label.clone().detach()
             else:
-                draw_feature_test = torch.cat((draw_feature_test, output))
+                draw_feature_test = torch.cat((draw_feature_test, feature))
                 draw_label_test = torch.cat((draw_label_test, label))
 ##############################
             pred = output.argmax(dim=1)
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--class_num', type=int, default=35)
     parser.add_argument('--learning_rate', type=float, default=0.02)
-    parser.add_argument('--epochs', type=int, default=60)
+    parser.add_argument('--epochs', type=int, default=2)
     parser.add_argument('--milestones', type=int, nargs='+', default=[40, 50])
 
     config = parser.parse_args()
