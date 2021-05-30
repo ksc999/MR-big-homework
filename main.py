@@ -15,30 +15,19 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 #################################
-# use PCA to draw scatter plot
-def draw_dataset_with_PCA(feature, label):
+# use TSNE to draw scatter plot
+def draw_dataset_with_TSNE(feature, label):
     feature_numpy = feature.cpu().detach().numpy()
     label_numpy = label.cpu().detach().numpy()
 
     f = np.array([feature_numpy[i] for i in range(label_numpy.shape[0]) if (label_numpy[i]>=1 and label_numpy[i]<=5)])
     l = np.array([label_numpy[i] for i in range(label_numpy.shape[0]) if (label_numpy[i]>=1 and label_numpy[i]<=5)])
-    pca = PCA(n_components=2)
-    pca.fit(f)
-    feature_PCA = pca.transform(f)
-    print(pca.explained_variance_ratio_)
-    x = feature_PCA[:, 0]
-    y = feature_PCA[:, 1]
+    tsne = manifold.TSNE(n_components=2, init='pca', random_state=501)
+    feature_tsne = tsne.fit_transform(f)
+    x = feature_tsne[:, 0]
+    y = feature_tsne[:, 1]
     plt.scatter(x, y, c=l, alpha=0.5)
     plt.show()
-
-    # pca = PCA(n_components=2)
-    # pca.fit(feature_numpy)
-    # feature_PCA = pca.transform(feature_numpy)
-    # print(pca.explained_variance_ratio_)
-    # x = feature_PCA[:, 0]
-    # y = feature_PCA[:, 1]
-    # plt.scatter(x, y, c=label_numpy, alpha=0.5)
-    # plt.show()
 
 #################################
 
@@ -100,17 +89,17 @@ def main(config):
 
 ###############################
 # loss and acc curves
-    fig = plt.figure(figsize=(6,4)) 
-    ax1 = fig.add_subplot(111)
-    ax1.plot(train_numbers, train_losses, 'r-', label='loss')
-    ax1.set_xlabel('train_numbers')
-    ax1.set_ylabel('train_losses')
-    ax1.legend(loc='upper left')
-    ax2 = ax1.twinx()
-    ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
-    ax2.set_ylabel('train_accuracies')
-    ax2.legend(loc='upper right')
-    plt.show()
+    # fig = plt.figure(figsize=(6,4)) 
+    # ax1 = fig.add_subplot(111)
+    # ax1.plot(train_numbers, train_losses, 'r-', label='loss')
+    # ax1.set_xlabel('train_numbers')
+    # ax1.set_ylabel('train_losses')
+    # ax1.legend(loc='upper left')
+    # ax2 = ax1.twinx()
+    # ax2.plot(train_numbers, train_accuracies, 'b-', label='acc')
+    # ax2.set_ylabel('train_accuracies')
+    # ax2.legend(loc='upper right')
+    # plt.show()
 ###############################
 
     # you can use validation dataset to adjust hyper-parameters
@@ -162,13 +151,13 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
         scheduler.step()
         torch.save(model.state_dict(), './model.pth')
 ##############################
-# convert and reshape features
-    draw_feature = torch.stack(draw_feature)
-    draw_feature = draw_feature.view(-1, draw_feature.size(-1))
-    draw_label = torch.stack(draw_label)
-    draw_label = draw_label.view(-1)
-# draw scatter plot
-    draw_dataset_with_PCA(draw_feature, draw_label)
+# # convert and reshape features
+#     draw_feature = torch.stack(draw_feature)
+#     draw_feature = draw_feature.view(-1, draw_feature.size(-1))
+#     draw_label = torch.stack(draw_label)
+#     draw_label = draw_label.view(-1)
+# # draw scatter plot
+#     draw_dataset_with_TSNE(draw_feature, draw_label)
 ##############################
     return train_numbers, train_losses, train_accuracies
 
@@ -199,7 +188,7 @@ def test(data_loader, model):
             index = index + 1
 ##############################
 # draw scatter plot
-        # draw_dataset_with_PCA(draw_feature_test, draw_label_test)
+        draw_dataset_with_TSNE(draw_feature_test, draw_label_test)
 ##############################
     accuracy = correct * 1.0 / len(data_loader.dataset)
     return accuracy
@@ -210,7 +199,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--class_num', type=int, default=35)
     parser.add_argument('--learning_rate', type=float, default=0.02)
-    parser.add_argument('--epochs', type=int, default=2)
+    parser.add_argument('--epochs', type=int, default=60)
     parser.add_argument('--milestones', type=int, nargs='+', default=[40, 50])
 
     config = parser.parse_args()
