@@ -10,7 +10,7 @@ from model import base_model
 from triplet_loss import MyTripletLoss
 from my_batch_samper import MyBatchSampler
 
-from sklearn.decomposition import PCA
+from sklearn import manifold, datasets
 import matplotlib 
 import matplotlib.pyplot as plt
 
