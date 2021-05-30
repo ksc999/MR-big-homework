@@ -11,6 +11,10 @@ from sklearn import manifold,datasets
 import matplotlib 
 import matplotlib.pyplot as plt
 
+def add_noise(config, data_loader, model, optimizer, scheduler, creiteron, p_noise_list):
+    for p in p_noise_list:
+        
+
 #################################
 # use TSNE to draw scatter plot
 def draw_dataset_with_TSNE(feature, label):
