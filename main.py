@@ -109,7 +109,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
         for batch_idx, (data, label) in enumerate(data_loader):
             data = data.cuda()
             label = label.cuda()
-            output = model(data)
+            output, feature = model(data)
 ###########################
             label_extended = torch.zeros((label.size(0), config.class_num)).cuda()
             for i in range(label.size(0)):
@@ -133,7 +133,7 @@ def train(config, data_loader, model, optimizer, scheduler, creiteron):
 ##############################
 # draw scatter plot using features from the last epoch
             if epoch == config.epochs - 1:
-                draw_feature.append(output)
+                draw_feature.append(feature)
                 draw_label.append(label)
 ##############################
         scheduler.step()
@@ -163,12 +163,12 @@ def test(data_loader, model):
 ##############################
             data = data.cuda()
             label = label.cuda()
-            output = model(data)
+            output, feature = model(data)
             if index == 0:
-                draw_feature_test = output.clone().detach()
+                draw_feature_test = feature.clone().detach()
                 draw_label_test = label.clone().detach()
             else:
-                draw_feature_test = torch.cat((draw_feature_test, output))
+                draw_feature_test = torch.cat((draw_feature_test, feature))
                 draw_label_test = torch.cat((draw_label_test, label))
 ##############################
             pred = output.argmax(dim=1)
