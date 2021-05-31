@@ -26,10 +26,6 @@ class base_model(nn.Module):
         x = self.max_pooling(x)
         x = self.conv3(x)
         x = self.GAP(x).squeeze(dim=3).squeeze(dim=2)
-#################################
-# you can see this x as the feature, and use it to visualize something
-        # feature = x.clone().detach()
-#################################
         x = self.fc1(self.relu(self.bn3(x)))
         feature = self.relu(self.bn4(x))
         logits = self.fc2(feature)
