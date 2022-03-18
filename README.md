@@ -1,4 +1,4 @@
-# MR-big-homework branch structure
+# Machine Learning project branch structure
 ### visualization part:
 - master branch: add tsne and acc-loss curves
 ### model part:
